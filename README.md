@@ -1,4 +1,4 @@
-# Mutational Signature
+# Mutational Signature Library
 
 Library for computing enrichment of mutational signatures (like APOBEC signature) :alien:
 
