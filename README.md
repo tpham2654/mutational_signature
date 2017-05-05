@@ -18,7 +18,7 @@ Library for computing mutational-signatures enrichment (like APOBEC signature) i
 
 # Comparison with Firehose's P-MACD
 
-[Comparison results](mutational-signature/media/compare_with_p-macd.pdf)
+[Comparison results](https://github.com/KwatME/mutational-signature/blob/master/media/compare_with_p-macd.pdf)
 
 # References
 
