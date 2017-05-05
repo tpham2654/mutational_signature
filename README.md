@@ -3,18 +3,17 @@ Library for computing mutational-signatures enrichment (like APOBEC signature) i
 
 # Usage
 (Awesome & easy-to-follow documentation is coming - very soon)
+
 ## Input
-* Mutations
-..* VCF or
-..* MAF
-* Reference genome
-..* FASTA or
-..* FA
+* Mutations: VCF or MAF
+* Reference genome: FASTA or FA
+
 ## Output
-* Results (n_features-x-n_samples)
-..* TXT (tab-separated)
-* Ranking & distribution of the enrichment)
-..* PDF
+* Results (n_features-x-n_samples): TXT (tab-separated)
+* Ranking & distribution of the enrichment): PDF
+
+# Comparison with Firehose's P-MACD
+[Comparison results](../media/comparison_with_p-macd.pdf)
 
 # References
 Algorithm was implemented based on:
