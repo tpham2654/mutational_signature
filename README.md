@@ -1,6 +1,6 @@
-# mutational-signature
+# Mutational Signature
 
-Library for computing mutational-signatures enrichment (like APOBEC signature) in a genome :alien:
+Library for computing enrichment of mutational signatures (like APOBEC signature) :alien:
 
 # Usage
 
