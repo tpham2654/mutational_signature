@@ -13,7 +13,7 @@ Library for computing mutational-signatures enrichment (like APOBEC signature) i
 * Ranking & distribution of the enrichment): PDF
 
 # Comparison with Firehose's P-MACD
-[Comparison results](./media/comparison_with_p-macd.pdf)
+[Comparison results](/media/comparison_with_p-macd.pdf)
 
 # References
 Algorithm was implemented based on:
