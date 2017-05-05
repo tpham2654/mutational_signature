@@ -1,5 +1,5 @@
 # mutational-signature
-Tools for computing mutational-signatures enrichment (like APOBEC signature) in a genome :alien:
+Library for computing mutational-signatures enrichment (like APOBEC signature) in a genome :alien:
 
 # Usage
 (Awesome & easy-to-follow documentation is coming - very soon)
