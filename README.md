@@ -1,2 +1,2 @@
 # mutational-signature
-Compute enrichment of mutational signatures in a genome, such as APOBEC signature :alien:
+Compute enrichment of mutational signatures (like APOBEC signature) in a genome :alien:
