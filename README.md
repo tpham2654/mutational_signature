@@ -11,8 +11,10 @@ Library for computing mutational-signatures enrichment (like APOBEC signature) i
 ..* FASTA or
 ..* FA
 ## Output
-* Tab-separated TXT file (n_features-x-n_samples)
-* PDF figures (Ranking & distribution of the enrichment)
+* Results (n_features-x-n_samples)
+..* TXT (tab-separated)
+* Ranking & distribution of the enrichment)
+..* PDF
 
 # References
 Algorithm was implemented based on:
