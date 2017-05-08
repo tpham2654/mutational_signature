@@ -3,7 +3,7 @@ import re
 from pprint import pprint
 
 import pyfaidx
-from pandas import DataFrame, read_csv
+from pandas import DataFrame, read_table
 
 
 def get_apobec_mutational_signature_enrichment(mutation_filepath,
@@ -173,13 +173,14 @@ def count(filepath,
     """
 
     # Load mutation file
+    # TODO: Use helper.file.read_vcf
     if filetype in ('vcf', 'vcf.gz'):
-        df = read_csv(
-            filepath, sep='\t', comment='#',
+        df = read_table(
+            filepath, comment='#',
             encoding='ISO-8859-1').iloc[:, [0, 1, 3, 4]]
     elif filetype == 'maf':
-        df = read_csv(
-            filepath, sep='\t', comment='#',
+        df = read_table(
+            filepath, comment='#',
             encoding='ISO-8859-1').iloc[:, [4, 5, 10, 12]]
 
     # Get ready to count mutations and/or motifs
