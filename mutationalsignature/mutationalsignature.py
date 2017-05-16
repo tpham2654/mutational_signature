@@ -5,16 +5,17 @@ from pprint import pprint
 import pyfaidx
 from pandas import DataFrame, read_table
 
-from .file.file.vcf import read_vcf
-
 
 def get_apobec_mutational_signature_enrichment(mutation_file_path,
                                                reference_file_path,
+                                               regions={},
                                                use_chr_prefix=False):
     """
     Compute APOBEC mutational signature enrichment.
-    :param mutation_file_path: str or iterable; file_path(s) to mutation file(s)
-    :param referece_file_path: str; file_path to referece genome (.fasta, .fa)
+    :param mutation_file_path: str or iterable; of file_path(s) to mutatins
+    (.VCF | .VCF.GZ | .MAF)
+    :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
+    :param regions: dict;
     :param use_chr_prefix: bool; use 'chr' prefix from mutation file or not
     :return: DataFrame; (n_mutations + n_motifs counted, n_mutation_files)
     """
@@ -23,13 +24,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     if isinstance(mutation_file_path, str):
         mutation_file_path = [mutation_file_path]
 
-    # Get file type
-    for e in ['vcf', 'vcf.gz', 'maf']:
-        if mutation_file_path[0].endswith(e):
-            filetype = e
-    print('Mutation file type: {}.'.format(filetype))
-
-    # Load reference genome
+    # Load reference genome (mutation files must use the same reference)
     fasta = pyfaidx.Fasta(
         reference_file_path,
         filt_function=lambda c: '_' not in c,  # Load only 1-22, X, Y, and M
@@ -51,7 +46,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
         'aGa ==> aAa',
     ]
 
-    # Identigy what to count
+    # Identigy what to count to compute enrichment
     signature_mutations,\
         control_mutations,\
         signature_b_motifs,\
@@ -70,13 +65,13 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
         # Count
         samples[id_] = count(
             fp,
-            filetype,
             fasta,
             span,
             signature_mutations,
             control_mutations,
             signature_b_motifs,
             control_b_motifs,
+            regions=regions,
             use_chr_prefix=use_chr_prefix)
 
     # Tabulate results
@@ -163,24 +158,24 @@ def _identify_what_to_count(signature_mutations):
 
 
 def count(file_path,
-          filetype,
           fasta,
           span,
           signature_mutations,
           control_mutations,
           signature_b_motifs,
           control_b_motifs,
+          regions={},
           use_chr_prefix=False):
     """
     """
 
     # Load mutation file
-    # TODO: Use helper.file.read_vcf
-    if filetype in ('vcf', 'vcf.gz'):
+    if file_path.endswith('.vcf') or file_path.endswith('.vcf.gz'):
         df = read_table(
             file_path, comment='#',
             encoding='ISO-8859-1').iloc[:, [0, 1, 3, 4]]
-    elif filetype == 'maf':
+
+    elif file_path.endswith('.maf'):
         df = read_table(
             file_path, comment='#',
             encoding='ISO-8859-1').iloc[:, [4, 5, 10, 12]]
@@ -220,6 +215,14 @@ def count(file_path,
             print('\tRefereces mismatch: {}:{} {} != ({}){}({})'.format(
                 chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
+
+        # Skip if not in the specified regions
+        if regions:
+            spans = regions.get(chr_)
+            if not spans:
+                continue
+            if not any([s < pos < e for s, e in spans]):
+                continue
 
         n_mutations += 1
 
