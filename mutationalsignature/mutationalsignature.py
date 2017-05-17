@@ -60,7 +60,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
         id_ = fp.split('/')[-1].split('.')[0]
         if id_ in samples:
             raise ValueError('{} duplicated'.format(id_))
-        print('({}) {} ...'.format(i, id_))
+        print('({}/{}) {} ...'.format(i + 1, len(mutation_file_path), id_))
 
         # Count
         samples[id_] = count(
@@ -191,6 +191,8 @@ def count(file_path,
     n_mutations = 0
     for i, (chr_, pos, ref, alt) in df.iterrows():
 
+        chr_ = str(chr_)
+
         # Use 'chr' prefix
         if use_chr_prefix:
             if not chr_.startswith('chr'):
@@ -203,25 +205,24 @@ def count(file_path,
 
         # Skip if there is no reference information
         if chr_ not in fasta.keys():
-            print('\tchr {} not in fasta.'.format(chr_))
+            # print('\tChromosome {} not in fasta.'.format(chr_))
             continue
 
         # Skip if variant is not a SNP
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
-            print('Skipping non-SNP {} ==> {}.'.format(ref, alt))
+            # print('\tNot SNP {} ==> {}.'.format(ref, alt))
             continue
 
         if ref != fasta[chr_][pos].seq:
-            print('\tRefereces mismatch: {}:{} {} != ({}){}({})'.format(
-                chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
+            # print('\tRefereces mismatch: {}:{} {} != ({}){}({})'.format(
+                # chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
 
         # Skip if not in the specified regions
         if regions:
             spans = regions.get(chr_)
-            if not spans:
-                continue
-            if not any([s < pos < e for s, e in spans]):
+            if not spans or not any([s < pos < e for s, e in spans]):
+                # print('\t{}:{} not in regions.'.format(chr_, pos))
                 continue
 
         n_mutations += 1
