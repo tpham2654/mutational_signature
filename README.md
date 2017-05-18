@@ -17,7 +17,7 @@ Library for computing enrichment of mutational signature & cluster :octocat:
 
 # Comparison with Firehose's P-MACD
 
-[Comparison results](https://github.com/KwatME/mutational-signature/blob/master/media/Compare APOBEC mutational signature enrichment & P-MACD in TCGA.pdf)
+[Comparison results](https://github.com/KwatME/mutational-signature/blob/master/media/Compare\ APOBEC\ mutational\ signature\ enrichment\ &\ P-MACD\ in\ TCGA.pdf)
 
 # References
 
