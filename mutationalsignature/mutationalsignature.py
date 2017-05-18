@@ -9,14 +9,16 @@ from pandas import DataFrame, read_table
 def get_apobec_mutational_signature_enrichment(mutation_file_path,
                                                reference_file_path,
                                                regions={},
-                                               use_chr_prefix=False):
+                                               use_chr_prefix=False,
+                                               verbose=False):
     """
     Compute APOBEC mutational signature enrichment.
-    :param mutation_file_path: str or iterable; of file_path(s) to mutatins
+    :param mutation_file_path: str or iterable; of file_path(s) to mutations
     (.VCF | .VCF.GZ | .MAF)
     :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
     :param regions: dict;
     :param use_chr_prefix: bool; use 'chr' prefix from mutation file or not
+    :param verbose: bool;
     :return: DataFrame; (n_mutations + n_motifs counted, n_mutation_files)
     """
 
@@ -29,7 +31,8 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
         reference_file_path,
         filt_function=lambda c: '_' not in c,  # Load only 1-22, X, Y, and M
         sequence_always_upper=True)
-    print('Loaded reference genome: {}.'.format(list(fasta.keys())))
+    if verbose:
+        print('Loaded reference genome: {}.'.format(list(fasta.keys())))
 
     span = 20
 
@@ -50,7 +53,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     signature_mutations,\
         control_mutations,\
         signature_b_motifs,\
-        control_b_motifs = _identify_what_to_count(ss)
+        control_b_motifs = _identify_what_to_count(ss, verbose=verbose)
 
     # Count
     samples = {}
@@ -88,7 +91,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     return df
 
 
-def _identify_what_to_count(signature_mutations):
+def _identify_what_to_count(signature_mutations, verbose=False):
     """
     Identigy what mutations and/or motifs to count to compute mutational
     signature enrichment:
@@ -97,6 +100,7 @@ def _identify_what_to_count(signature_mutations):
         [(n_signature_motifs_in_context) /
         (n_changing_signature_motifs_in_context)]
     :param signature_mutations: iterable; iterable of str
+    :param verbose: bool;
     :return: dict, dict, dict, and dict;
     """
 
@@ -122,8 +126,9 @@ def _identify_what_to_count(signature_mutations):
             'change_end_i': max([m.end() for m in re.finditer('[A-Z]+', b_m)
                                  ]),  # Changing-motif end index
         }
-    print('s_mutations:')
-    pprint(s_mutations)
+    if verbose:
+        print('s_mutations:')
+        pprint(s_mutations)
 
     # Control mutations
     c_mutations = {}
@@ -143,23 +148,26 @@ def _identify_what_to_count(signature_mutations):
             'after': c_a_m,
             'n': 0
         }
-    print('\nc_mutations:')
-    pprint(c_mutations)
+    if verbose:
+        print('\nc_mutations:')
+        pprint(c_mutations)
 
     # Signature before-motifs
     s_b_motifs = {d.get('before').lower(): 0 for m, d in s_mutations.items()}
-    print('\ns_b_motifs:')
-    pprint(s_b_motifs)
+    if verbose:
+        print('\ns_b_motifs:')
+        pprint(s_b_motifs)
 
     # Control before-motifs
     c_b_motifs = {d.get('before').lower(): 0 for m, d in c_mutations.items()}
-    print('\nc_b_motifs:')
-    pprint(c_b_motifs)
+    if verbose:
+        print('\nc_b_motifs:')
+        pprint(c_b_motifs)
 
     return s_mutations, c_mutations, s_b_motifs, c_b_motifs
 
 
-def count(file_path,
+def count(mutation_file_path,
           fasta,
           span,
           signature_mutations,
@@ -167,19 +175,34 @@ def count(file_path,
           signature_b_motifs,
           control_b_motifs,
           regions={},
-          use_chr_prefix=False):
+          use_chr_prefix=False,
+          verbose=False):
     """
+    Count.
+    :param mutation_file_path: str; file_path to mutations (.VCF | .VCF.GZ |
+    .MAF)
+    :param fasta: pyfaidx handle;
+    :param span: int;
+    :signature_mutations: dict;
+    :control_mutations: dict;
+    :signature_b_motifs: dict;
+    :control_b_motifs: dict;
+    :param regions: dict;
+    :param use_chr_prefix: bool; use 'chr' prefix from mutation file or not
+    :param verbose: bool;
+    :return: dict;
     """
 
     # Load mutation file
-    if file_path.endswith('.vcf') or file_path.endswith('.vcf.gz'):
+    if mutation_file_path.endswith('.vcf') or mutation_file_path.endswith(
+            '.vcf.gz'):
         df = read_table(
-            file_path, comment='#',
+            mutation_file_path, comment='#',
             encoding='ISO-8859-1').iloc[:, [0, 1, 3, 4]]
 
-    elif file_path.endswith('.maf'):
+    elif mutation_file_path.endswith('.maf'):
         df = read_table(
-            file_path, comment='#',
+            mutation_file_path, comment='#',
             encoding='ISO-8859-1').iloc[:, [4, 5, 10, 12]]
 
     # Get ready to count mutations and/or motifs
@@ -207,24 +230,28 @@ def count(file_path,
 
         # Skip if there is no reference information
         if chr_ not in fasta.keys():
-            print('\tChromosome {} not in fasta.'.format(chr_))
+            if verbose:
+                print('\tChromosome {} not in fasta.'.format(chr_))
             continue
 
         # Skip if variant is not a SNP
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
-            print('\tNot SNP {} ==> {}.'.format(ref, alt))
+            if verbose:
+                print('\tNot SNP {} ==> {}.'.format(ref, alt))
             continue
 
         if ref != fasta[chr_][pos].seq:
-            print('\tRefereces mismatch: {}:{} {} != ({}){}({})'.format(
-                chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
+            if verbose:
+                print('\tRefereces mismatch: {}:{} {} != ({}){}({})'.format(
+                    chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
 
         # Skip if not in the specified regions
         if regions:
             spans = regions.get(chr_)
             if not spans or not any([s < pos < e for s, e in spans]):
-                print('\t{}:{} not in regions.'.format(chr_, pos))
+                if verbose:
+                    print('\t{}:{} not in regions.'.format(chr_, pos))
                 continue
 
         n_mutations += 1
