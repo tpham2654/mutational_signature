@@ -297,10 +297,13 @@ def count(mutation_file_path,
                     # Matched a control mutation, so increment count
                     d['n'] += 1
 
-        # Get mutation-spanning sequences
-        span_seq = fasta[chr_][pos - span:pos + span + 1].seq
+        # Get mutation-spanning sequences and strip 'N's
+        span_seq = fasta[chr_][pos - span:pos + span + 1].seq.strip('N')
         if re.findall('[^ACGT]', span_seq):
-            print(span_seq)
+            if verbose:
+                print('\t{} (centered on {}:{}) contains unknown nucleotide.'.
+                      format(span_seq, chr_, pos))
+            continue
 
         n_spanning_bases += len(span_seq)
 
