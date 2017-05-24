@@ -1,6 +1,6 @@
 # Mutational Signature Library
 
-Library for computing enrichment of mutational signature & cluster :octocat:
+Library for computing enrichment of mutational signature & cluster :alien:
 
 # Usage
 
