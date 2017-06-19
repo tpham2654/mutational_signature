@@ -9,6 +9,7 @@ from pandas import DataFrame, read_table
 def get_apobec_mutational_signature_enrichment(mutation_file_path,
                                                reference_file_path,
                                                regions={},
+                                               ignore_variant_with_rsid=True,
                                                use_chr_prefix=False,
                                                verbose=False):
     """
@@ -17,6 +18,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     (.VCF | .VCF.GZ | .MAF)
     :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
     :param regions: dict;
+    :param ignore_variant_with_rsid: bool
     :param use_chr_prefix: bool; use 'chr' prefix from mutation file or not
     :param verbose: bool;
     :return: DataFrame; (n_mutations + n_motifs counted, n_mutation_files)
@@ -75,6 +77,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
             signature_b_motifs,
             control_b_motifs,
             regions=regions,
+            ignore_variant_with_rsid=ignore_variant_with_rsid,
             use_chr_prefix=use_chr_prefix)
 
     # Tabulate results
@@ -175,22 +178,24 @@ def count(mutation_file_path,
           signature_b_motifs,
           control_b_motifs,
           regions={},
+          ignore_variant_with_rsid=True,
           use_chr_prefix=False,
           verbose=False):
     """
     Count.
     :param mutation_file_path: str; file_path to mutations (.VCF | .VCF.GZ |
     .MAF)
-    :param fasta: pyfaidx handle;
-    :param span: int;
-    :signature_mutations: dict;
-    :control_mutations: dict;
-    :signature_b_motifs: dict;
-    :control_b_motifs: dict;
-    :param regions: dict;
+    :param fasta: pyfaidx handle
+    :param span: int
+    :signature_mutations: dict
+    :control_mutations: dict
+    :signature_b_motifs: dict
+    :control_b_motifs: dict
+    :param regions: dict
+    :param ignore_variant_with_rsid: bool
     :param use_chr_prefix: bool; use 'chr' prefix from mutation file or not
-    :param verbose: bool;
-    :return: dict;
+    :param verbose: bool
+    :return: dict
     """
 
     # Load mutation file
@@ -198,7 +203,7 @@ def count(mutation_file_path,
             '.vcf.gz'):
         df = read_table(
             mutation_file_path, comment='#',
-            encoding='ISO-8859-1').iloc[:, [0, 1, 3, 4]]
+            encoding='ISO-8859-1').iloc[:, [0, 1, 2, 3, 4]]
 
     elif mutation_file_path.endswith('.maf'):
         df = read_table(
@@ -214,7 +219,10 @@ def count(mutation_file_path,
     # Evaluate each row
     n_spanning_bases = 0
     n_mutations = 0
-    for i, (chr_, pos, ref, alt) in df.iterrows():
+    for i, (chr_, pos, id_, ref, alt) in df.iterrows():
+
+        if ignore_variant_with_rsid and id_.startswith('rs'):
+            continue
 
         chr_ = str(chr_)
 
