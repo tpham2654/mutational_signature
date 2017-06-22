@@ -206,6 +206,7 @@ def count(mutation_file_path,
             encoding='ISO-8859-1').iloc[:, [0, 1, 2, 3, 4]]
 
     elif mutation_file_path.endswith('.maf'):
+        # TODO: Get RSID column to match df made from .VCF(.GZ)
         df = read_table(
             mutation_file_path, comment='#',
             encoding='ISO-8859-1').iloc[:, [4, 5, 10, 12]]
@@ -217,29 +218,41 @@ def count(mutation_file_path,
     c_b_motifs = copy.deepcopy(control_b_motifs)
 
     # Evaluate each row
-    n_mutations = 0
+    n_mutations_in_region = 0
+    n_mutations_analyzed = 0
     n_spanning_bases = 0
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
 
-        if ignore_variant_with_rsid and id_.startswith('rs'):
-            continue
-
         chr_ = str(chr_)
+        pos = int(pos) - 1
 
-        # Use 'chr' prefix
         if use_chr_prefix:
+            # Use 'chr' prefix
             if not chr_.startswith('chr'):
                 chr_ = 'chr{}'.format(chr_)
         else:
             if chr_.startswith('chr'):
                 chr_ = chr_.replace('chr', '')
 
-        pos = int(pos) - 1
+        # Skip if not in the specified regions
+        if regions:
+            spans = regions.get(chr_)
+            if not spans or not any([s < pos < e for s, e in spans]):
+                if verbose:
+                    print('\t{}:{} not in regions.'.format(chr_, pos))
+                continue
+
+        n_mutations_in_region += 1
 
         # Skip if there is no reference information
         if chr_ not in fasta.keys():
             if verbose:
                 print('\tChromosome {} not in fasta.'.format(chr_))
+            continue
+
+        if ignore_variant_with_rsid and id_.startswith('rs'):
+            if verbose:
+                print('\tSkip variant with RSID {}.'.format(id_))
             continue
 
         # Skip if variant is not a SNP
@@ -250,20 +263,11 @@ def count(mutation_file_path,
 
         if ref != fasta[chr_][pos].seq:
             if verbose:
-                print('\tRefereces mismatch: {}:{} {} != ({}){}({})'.format(
+                print('\tRefereces mismatch: {}:{} {} != ({}){}({}).'.format(
                     chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
 
-        # Skip if not in the specified regions
-        if regions:
-            spans = regions.get(chr_)
-            if not spans or not any([s < pos < e for s, e in spans]):
-                if verbose:
-                    print('\t{}:{} not in regions.'.format(chr_, pos))
-                continue
-
-        n_mutations += 1
-
+        n_mutations_analyzed += 1
         # Check if this mutation matches any signature mutation
         for m, d in s_mutations.items():
 
@@ -323,8 +327,9 @@ def count(mutation_file_path,
             c_b_motifs[m] += span_seq.count(m.upper())
 
     counts = {
-        'N Mutations': i + 1,
-        'N Mutations Analyzed': n_mutations,
+        'N Entries in Mutation File': i + 1,
+        'N Mutations in Region': n_mutations_in_region,
+        'N Mutations Analyzed': n_mutations_analyzed,
         'N Spanning Bases': n_spanning_bases,
     }
     counts.update({m: d['n'] for m, d in s_mutations.items()})
