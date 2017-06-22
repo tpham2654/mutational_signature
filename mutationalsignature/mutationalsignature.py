@@ -217,8 +217,8 @@ def count(mutation_file_path,
     c_b_motifs = copy.deepcopy(control_b_motifs)
 
     # Evaluate each row
-    n_spanning_bases = 0
     n_mutations = 0
+    n_spanning_bases = 0
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
 
         if ignore_variant_with_rsid and id_.startswith('rs'):
