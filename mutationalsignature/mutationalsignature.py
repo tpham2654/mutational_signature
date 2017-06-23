@@ -1,26 +1,25 @@
 import copy
 import re
+from os.path import isfile
 from pprint import pprint
 
 import pyfaidx
-from pandas import DataFrame, read_table
+from pandas import DataFrame, isnull, read_table
 
 
 def get_apobec_mutational_signature_enrichment(mutation_file_path,
                                                reference_file_path,
                                                regions={},
                                                ignore_variant_with_rsid=True,
-                                               use_chr_prefix=False,
                                                verbose=False):
     """
     Compute APOBEC mutational signature enrichment.
     :param mutation_file_path: str or iterable; of file_path(s) to mutations
     (.VCF | .VCF.GZ | .MAF)
     :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
-    :param regions: dict;
+    :param regions: dict
     :param ignore_variant_with_rsid: bool
-    :param use_chr_prefix: bool; use 'chr' prefix from mutation file or not
-    :param verbose: bool;
+    :param verbose: bool
     :return: DataFrame; (n_mutations + n_motifs counted, n_mutation_files)
     """
 
@@ -29,10 +28,13 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
         mutation_file_path = [mutation_file_path]
 
     # Load reference genome (mutation files must use the same reference)
-    fasta = pyfaidx.Fasta(
-        reference_file_path,
-        filt_function=lambda c: '_' not in c,  # Load only 1-22, X, Y, and M
-        sequence_always_upper=True)
+    reference_index_file_path = '{}.fai'.format(reference_file_path)
+    if not isfile(reference_index_file_path):
+        raise ValueError('.FAI index {} doens\'t exist.'.format(
+            reference_index_file_path))
+    fasta = pyfaidx.Fasta(reference_file_path)
+    if not fasta:
+        raise ValueError('Loaded nothing from the reference genome.')
     if verbose:
         print('Loaded reference genome: {}.'.format(list(fasta.keys())))
 
@@ -78,11 +80,10 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
             control_b_motifs,
             regions=regions,
             ignore_variant_with_rsid=ignore_variant_with_rsid,
-            use_chr_prefix=use_chr_prefix)
+            verbose=verbose)
 
     # Tabulate results
     df = DataFrame(samples)
-    df.index.name = 'Signature'
     df.columns.name = 'Sample'
 
     df.ix['APOBEC Mutational Signature Enrichment'] = (
@@ -91,7 +92,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
             df.ix[list(signature_b_motifs.keys())].sum() /
             df.ix[list(control_b_motifs.keys())].sum())
 
-    return df
+    return df.sort_index()
 
 
 def _identify_what_to_count(signature_mutations, verbose=False):
@@ -103,8 +104,8 @@ def _identify_what_to_count(signature_mutations, verbose=False):
         [(n_signature_motifs_in_context) /
         (n_changing_signature_motifs_in_context)]
     :param signature_mutations: iterable; iterable of str
-    :param verbose: bool;
-    :return: dict, dict, dict, and dict;
+    :param verbose: bool
+    :return: dict & dict & dict & dict
     """
 
     # Signature mutations
@@ -179,7 +180,6 @@ def count(mutation_file_path,
           control_b_motifs,
           regions={},
           ignore_variant_with_rsid=True,
-          use_chr_prefix=False,
           verbose=False):
     """
     Count.
@@ -193,7 +193,6 @@ def count(mutation_file_path,
     :control_b_motifs: dict
     :param regions: dict
     :param ignore_variant_with_rsid: bool
-    :param use_chr_prefix: bool; use 'chr' prefix from mutation file or not
     :param verbose: bool
     :return: dict
     """
@@ -206,10 +205,9 @@ def count(mutation_file_path,
             encoding='ISO-8859-1').iloc[:, [0, 1, 2, 3, 4]]
 
     elif mutation_file_path.endswith('.maf'):
-        # TODO: Get RSID column to match df made from .VCF(.GZ)
         df = read_table(
             mutation_file_path, comment='#',
-            encoding='ISO-8859-1').iloc[:, [4, 5, 10, 12]]
+            encoding='ISO-8859-1').iloc[:, [4, 5, 13, 10, 12]]
 
     # Get ready to count mutations and/or motifs
     s_mutations = copy.deepcopy(signature_mutations)
@@ -225,14 +223,9 @@ def count(mutation_file_path,
 
         chr_ = str(chr_)
         pos = int(pos) - 1
-
-        if use_chr_prefix:
-            # Use 'chr' prefix
-            if not chr_.startswith('chr'):
-                chr_ = 'chr{}'.format(chr_)
-        else:
-            if chr_.startswith('chr'):
-                chr_ = chr_.replace('chr', '')
+        if isnull(id_):
+            # Show missing ID consistently with as done in .VCF(.GZ)
+            id_ = '.'
 
         # Skip if not in the specified regions
         if regions:
@@ -258,7 +251,7 @@ def count(mutation_file_path,
         # Skip if variant is not a SNP
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
             if verbose:
-                print('\tNot SNP {} ==> {}.'.format(ref, alt))
+                print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
             continue
 
         if ref != fasta[chr_][pos].seq:
