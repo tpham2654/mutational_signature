@@ -9,6 +9,7 @@ from pandas import DataFrame, isnull, read_table
 
 def get_apobec_mutational_signature_enrichment(mutation_file_path,
                                                reference_file_path,
+                                               chromosome_format='ID',
                                                regions={},
                                                ignore_variant_with_rsid=True,
                                                verbose=False):
@@ -17,6 +18,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     :param mutation_file_path: str or iterable; of file_path(s) to mutations
     (.VCF | .VCF.GZ | .MAF)
     :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
+    :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
     :param ignore_variant_with_rsid: bool
     :param verbose: bool
@@ -78,6 +80,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
             control_mutations,
             signature_b_motifs,
             control_b_motifs,
+            chromosome_format=chromosome_format,
             regions=regions,
             ignore_variant_with_rsid=ignore_variant_with_rsid,
             verbose=verbose)
@@ -178,6 +181,7 @@ def count(mutation_file_path,
           control_mutations,
           signature_b_motifs,
           control_b_motifs,
+          chromosome_format='ID',
           regions={},
           ignore_variant_with_rsid=True,
           verbose=False):
@@ -191,6 +195,7 @@ def count(mutation_file_path,
     :control_mutations: dict
     :signature_b_motifs: dict
     :control_b_motifs: dict
+    :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
     :param ignore_variant_with_rsid: bool
     :param verbose: bool
@@ -222,6 +227,16 @@ def count(mutation_file_path,
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
 
         chr_ = str(chr_)
+        if chromosome_format == 'chrID':
+            if not chr_.startswith('chr'):
+                chr_ = 'chr{}'.format(chr_).replace('MT', 'M')
+        elif chromosome_format == 'ID':
+            if chr_.startswith('chr'):
+                chr_ = chr_.replace('chr', '').replace('M', 'MT')
+        else:
+            raise ValueError('Unknown chromosome_format {}.'.format(
+                chromosome_format))
+
         pos = int(pos) - 1
         if isnull(id_):
             # Show missing ID consistently with as done in .VCF(.GZ)
