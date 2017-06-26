@@ -89,11 +89,15 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     df = DataFrame(samples)
     df.columns.name = 'Sample'
 
-    df.ix['APOBEC Mutational Signature Enrichment'] = (
-        df.ix[list(signature_mutations.keys())].sum() /
-        df.ix[list(control_mutations.keys())].sum()) / (
-            df.ix[list(signature_b_motifs.keys())].sum() /
-            df.ix[list(control_b_motifs.keys())].sum())
+    n_signature_mutations = df.ix[list(signature_mutations.keys())].sum()
+    n_control_mutations = df.ix[list(control_mutations.keys())].sum()
+    n_signature_b_mutations = df.ix[list(signature_b_motifs.keys())].sum()
+    n_control_b_mutations = df.ix[list(control_b_motifs.keys())].sum()
+
+    amse = (n_signature_mutations / n_control_mutations) / (
+        n_signature_b_mutations / n_control_b_mutations)
+
+    df.ix['APOBEC Mutational Signature Enrichment'] = amse.fillna(0)
 
     return df.sort_index()
 
