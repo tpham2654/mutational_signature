@@ -20,9 +20,9 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
     :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
-    :param ids: None | list; count all variants if None; only variants with IDs
-        present in the list if list (thus ignores all variants with IDs if an
-        empty list)
+    :param ids: None | iterable; count all variants if None or only variants
+        with IDs present in the iterable (thus ignores all variants with IDs if
+        an empty iterable)
     :param verbose: bool
     :return: DataFrame; (n_mutations + n_motifs counted, n_mutation_files)
     """
@@ -36,7 +36,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     if not isfile(reference_index_file_path):
         raise ValueError('.FAI index {} doens\'t exist.'.format(
             reference_index_file_path))
-    fasta = pyfaidx.Fasta(reference_file_path)
+    fasta = pyfaidx.Fasta(reference_file_path, sequence_always_upper=True)
     if not fasta:
         raise ValueError('Loaded nothing from the reference genome.')
     if verbose:
@@ -203,9 +203,9 @@ def count(mutation_file_path,
     :control_b_motifs: dict
     :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
-    :param ids: None | list; count all variants if None; only variants with IDs
-        present in the list if list (thus ignores all variants with IDs if an
-        empty list)
+    :param ids: None | iterable; count all variants if None or only variants
+        with IDs present in the iterable (thus ignores all variants with IDs if
+        an empty iterable)
     :param verbose: bool
     :return: dict
     """
@@ -230,15 +230,18 @@ def count(mutation_file_path,
 
     # Evaluate each row
     n_mutations_in_region = 0
+    n_kept_mutations_in_region = 0
     n_mutations_analyzed = 0
-    n_variants_with_rsid = 0
     n_spanning_bases = 0
 
     # Use dict for faster ID look up
-    ids = {id_: None for id_ in ids}
+    if ids is not None:
+        ids = {id_: None for id_ in ids}
 
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
 
+        # TODO: Remove
+        # Name chromosome
         chr_ = str(chr_)
         if chromosome_format == 'chrID':
             if not chr_.startswith('chr'):
@@ -250,51 +253,50 @@ def count(mutation_file_path,
             raise ValueError('Unknown chromosome_format {}.'.format(
                 chromosome_format))
 
+        # TODO: Rationalize
+        # Shift position
         pos = int(pos) - 1
-        if isnull(id_):
-            # Show missing ID consistently with as done in .VCF(.GZ)
-            id_ = '.'
 
-        # Skip if not in the specified regions
         if regions:
-            spans = regions.get(chr_)
-            if not spans or not any([s < pos < e for s, e in spans]):
+            # Skip if variant is not in the specified regions
+            r = regions.get(chr_)
+            if not r or not any([s < pos < e for s, e in r]):
                 if verbose:
                     print('\t{}:{} not in regions.'.format(chr_, pos))
                 continue
 
         n_mutations_in_region += 1
 
-        if chr_ not in fasta.keys():
-            # Skip if there is no reference information
-            if verbose:
-                print('\tChromosome {} not in fasta.'.format(chr_))
-            continue
-
-        if ids is not None and id_.startswith('rs'):
-            # Filter variant with RSIDs
+        # Filter variant with IDs
+        if ids is not None and not isnull(id_) and id_.startswith('rs'):
             if len(ids) and id_ in ids:
                 if verbose:
-                    print('\tKeep variant with RSID {}.'.format(id_))
-                n_variants_with_rsid += 1
+                    print('\tKeep variant with ID {}.'.format(id_))
             else:
                 if verbose:
-                    print('\tSkip variant with RSID {}.'.format(id_))
+                    print('\tSkip variant with ID {}.'.format(id_))
                 continue
+
+        n_kept_mutations_in_region += 1
+
+        if chr_ not in fasta.keys():
+            # Skip if there is no reference information
+            print('\tChromosome {} not in .FASTA.'.format(chr_))
+            continue
 
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
             # Skip if variant is not a SNP
-            if verbose:
-                print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
+            print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
             continue
 
         if ref != fasta[chr_][pos].seq:
-            if verbose:
-                print('\tRefereces mismatch: {}:{} {} != ({}){}({}).'.format(
-                    chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
+            print('\tRefereces mismatch: {}:{} {} != ({}){}({}).'.format(
+                chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
 
+        # Analyze
         n_mutations_analyzed += 1
+
         # Check if this mutation matches any signature mutation
         for m, d in s_mutations.items():
 
@@ -356,6 +358,7 @@ def count(mutation_file_path,
     counts = {
         'N Entries in Mutation File': i + 1,
         'N Mutations in Region': n_mutations_in_region,
+        'N Kept Mutations in Region': n_kept_mutations_in_region,
         'N Mutations Analyzed': n_mutations_analyzed,
         'N Spanning Bases': n_spanning_bases,
     }
@@ -364,5 +367,4 @@ def count(mutation_file_path,
     counts.update(s_b_motifs)
     counts.update(c_b_motifs)
 
-    print('\tN variants with RSIDs: {}'.format(n_variants_with_rsid))
     return counts
