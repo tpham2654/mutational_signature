@@ -11,7 +11,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
                                                reference_file_path,
                                                chromosome_format='ID',
                                                regions={},
-                                               ignore_variant_with_rsid=True,
+                                               ids=None,
                                                verbose=False):
     """
     Compute APOBEC mutational signature enrichment.
@@ -20,7 +20,9 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
     :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
-    :param ignore_variant_with_rsid: bool
+    :param ids: None | list; count all variants if None; only variants with IDs
+        present in the list if list (thus ignores all variants with IDs if an
+        empty list)
     :param verbose: bool
     :return: DataFrame; (n_mutations + n_motifs counted, n_mutation_files)
     """
@@ -82,7 +84,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
             control_b_motifs,
             chromosome_format=chromosome_format,
             regions=regions,
-            ignore_variant_with_rsid=ignore_variant_with_rsid,
+            ids=ids,
             verbose=verbose)
 
     # Tabulate results
@@ -187,7 +189,7 @@ def count(mutation_file_path,
           control_b_motifs,
           chromosome_format='ID',
           regions={},
-          ignore_variant_with_rsid=True,
+          ids=None,
           verbose=False):
     """
     Count.
@@ -201,7 +203,9 @@ def count(mutation_file_path,
     :control_b_motifs: dict
     :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
-    :param ignore_variant_with_rsid: bool
+    :param ids: None | list; count all variants if None; only variants with IDs
+        present in the list if list (thus ignores all variants with IDs if an
+        empty list)
     :param verbose: bool
     :return: dict
     """
@@ -227,7 +231,12 @@ def count(mutation_file_path,
     # Evaluate each row
     n_mutations_in_region = 0
     n_mutations_analyzed = 0
+    n_variants_with_rsid = 0
     n_spanning_bases = 0
+
+    # Use dict for faster ID look up
+    ids = {id_: None for id_ in ids}
+
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
 
         chr_ = str(chr_)
@@ -256,19 +265,25 @@ def count(mutation_file_path,
 
         n_mutations_in_region += 1
 
-        # Skip if there is no reference information
         if chr_ not in fasta.keys():
+            # Skip if there is no reference information
             if verbose:
                 print('\tChromosome {} not in fasta.'.format(chr_))
             continue
 
-        if ignore_variant_with_rsid and id_.startswith('rs'):
-            if verbose:
-                print('\tSkip variant with RSID {}.'.format(id_))
-            continue
+        if ids is not None and id_.startswith('rs'):
+            # Filter variant with RSIDs
+            if len(ids) and id_ in ids:
+                if verbose:
+                    print('\tKeep variant with RSID {}.'.format(id_))
+                n_variants_with_rsid += 1
+            else:
+                if verbose:
+                    print('\tSkip variant with RSID {}.'.format(id_))
+                continue
 
-        # Skip if variant is not a SNP
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
+            # Skip if variant is not a SNP
             if verbose:
                 print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
             continue
@@ -349,4 +364,5 @@ def count(mutation_file_path,
     counts.update(s_b_motifs)
     counts.update(c_b_motifs)
 
+    print('\tN variants with RSIDs: {}'.format(n_variants_with_rsid))
     return counts
