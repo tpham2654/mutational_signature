@@ -9,6 +9,7 @@ from pandas import DataFrame, isnull, read_table
 
 def get_apobec_mutational_signature_enrichment(mutation_file_path,
                                                reference_file_path,
+                                               upper_fasta=True,
                                                chromosome_format='ID',
                                                regions={},
                                                ids=None,
@@ -18,6 +19,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     :param mutation_file_path: str or iterable; of file_path(s) to mutations
     (.VCF | .VCF.GZ | .MAF)
     :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
+    :param upper_fasta: bool; read all .FASTA seqeunces as uppe case or not
     :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
     :param ids: None | iterable; count all variants if None or only variants
@@ -36,7 +38,8 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     if not isfile(reference_index_file_path):
         raise ValueError('.FAI index {} doens\'t exist.'.format(
             reference_index_file_path))
-    fasta = pyfaidx.Fasta(reference_file_path, sequence_always_upper=True)
+    fasta = pyfaidx.Fasta(
+        reference_file_path, sequence_always_upper=upper_fasta)
     if not fasta:
         raise ValueError('Loaded nothing from the reference genome.')
     if verbose:
@@ -281,15 +284,18 @@ def count(mutation_file_path,
 
         if chr_ not in fasta.keys():
             # Skip if there is no reference information
-            print('\tChromosome {} not in .FASTA.'.format(chr_))
+            if verbose:
+                print('\tChromosome {} not in .FASTA.'.format(chr_))
             continue
 
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
             # Skip if variant is not a SNP
-            print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
+            if verbose:
+                print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
             continue
 
         if ref != fasta[chr_][pos].seq:
+            # if verbose:
             print('\tRefereces mismatch: {}:{} {} != ({}){}({}).'.format(
                 chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
@@ -362,6 +368,7 @@ def count(mutation_file_path,
         'N Mutations Analyzed': n_mutations_analyzed,
         'N Spanning Bases': n_spanning_bases,
     }
+    pprint(counts)
     counts.update({m: d['n'] for m, d in s_mutations.items()})
     counts.update({m: d['n'] for m, d in c_mutations.items()})
     counts.update(s_b_motifs)
