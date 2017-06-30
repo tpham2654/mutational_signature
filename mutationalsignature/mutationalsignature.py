@@ -35,36 +35,42 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
 
     # Load reference genome (mutation files must use the same reference)
     reference_index_file_path = '{}.fai'.format(reference_file_path)
+
     if not isfile(reference_index_file_path):
         raise ValueError('.FAI index {} doens\'t exist.'.format(
             reference_index_file_path))
+
     fasta = pyfaidx.Fasta(
         reference_file_path, sequence_always_upper=upper_fasta)
+
     if not fasta:
         raise ValueError('Loaded nothing from the reference genome.')
+
     if verbose:
         print('Loaded reference genome: {}.'.format(list(fasta.keys())))
 
     span = 20
 
-    # Set up mutational signature
-    ss = [
-        'tCa ==> tGa',
-        'tCa ==> tTa',
-        'tCt ==> tGt',
-        'tCt ==> tTt',
+    # Set up mutational signature and their weights, which are from COSMIC
+    ss = {
+        'tCa ==> tGa': 0.3,
+        'tCa ==> tTa': 0.5,
+        'tCt ==> tGt': 0.4,
+        'tCt ==> tTt': 0.3,
+        # 'tCc ==> tGc': 0.1,
+        # 'tCc ==> tTc': 0.1,
         # Reverse complement
-        'tGa ==> tCa',
-        'tGa ==> tAa',
-        'aGa ==> aCa',
-        'aGa ==> aAa',
-    ]
+        'tGa ==> tCa': 0.3,
+        'tGa ==> tAa': 0.5,
+        'aGa ==> aCa': 0.4,
+        'aGa ==> aAa': 0.3,
+        'gGa ==> gCa': 0.1,
+        'gGa ==> gAa': 0.1,
+    }
 
     # Identigy what to count to compute enrichment
-    signature_mutations,\
-        control_mutations,\
-        signature_b_motifs,\
-        control_b_motifs = _identify_what_to_count(ss, verbose=verbose)
+    signature_mutations, control_mutations, signature_b_motifs, control_b_motifs = _identify_what_to_count(
+        ss, verbose=verbose)
 
     # Count
     samples = {}
@@ -94,10 +100,17 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
     df = DataFrame(samples)
     df.columns.name = 'Sample'
 
-    n_signature_mutations = df.ix[list(signature_mutations.keys())].sum()
-    n_control_mutations = df.ix[list(control_mutations.keys())].sum()
-    n_signature_b_mutations = df.ix[list(signature_b_motifs.keys())].sum()
-    n_control_b_mutations = df.ix[list(control_b_motifs.keys())].sum()
+    n_signature_mutations = df.ix[signature_mutations.keys()].apply(
+        lambda s: s * signature_mutations[s.name]['weight'], axis=1).sum()
+
+    n_control_mutations = df.ix[control_mutations.keys()].apply(
+        lambda s: s * control_mutations[s.name]['weight'], axis=1).sum()
+
+    n_signature_b_mutations = df.ix[signature_b_motifs.keys()].apply(
+        lambda s: s * signature_b_motifs[s.name]['weight'], axis=1).sum()
+
+    n_control_b_mutations = df.ix[control_b_motifs.keys()].apply(
+        lambda s: s * control_b_motifs[s.name]['weight'], axis=1).sum()
 
     amse = (n_signature_mutations / n_control_mutations) / (
         n_signature_b_mutations / n_control_b_mutations)
@@ -115,14 +128,14 @@ def _identify_what_to_count(signature_mutations, verbose=False):
         (n_changing_signature_motif_mutations)] /
         [(n_signature_motifs_in_context) /
         (n_changing_signature_motifs_in_context)]
-    :param signature_mutations: iterable; iterable of str
+    :param signature_mutations: dict; {signature_mutation: weight, ...}
     :param verbose: bool
     :return: dict & dict & dict & dict
     """
 
     # Signature mutations
     s_mutations = {}
-    for m in signature_mutations:
+    for m, w in signature_mutations.items():
 
         # Get before & after motifs, which must be the same length
         m_split = m.split('==>')
@@ -141,6 +154,7 @@ def _identify_what_to_count(signature_mutations, verbose=False):
             ]),  # Chaning-motif start index
             'change_end_i': max([m.end() for m in re.finditer('[A-Z]+', b_m)
                                  ]),  # Changing-motif end index
+            'weight': w
         }
     if verbose:
         print('s_mutations:')
@@ -159,23 +173,43 @@ def _identify_what_to_count(signature_mutations, verbose=False):
         c_b_m = b_m[c_s_i:c_e_i]
         c_a_m = a_m[c_s_i:c_e_i]
 
-        c_mutations['{} ==> {}'.format(c_b_m, c_a_m)] = {
-            'before': c_b_m,
-            'after': c_a_m,
-            'n': 0
-        }
+        k = '{} ==> {}'.format(c_b_m, c_a_m)
+        if k in c_mutations:
+            c_mutations[k]['weight'] = max(c_mutations[k]['weight'],
+                                           d.get('weight'))
+        else:
+            c_mutations[k] = {
+                'before': c_b_m,
+                'after': c_a_m,
+                'n': 0,
+                'weight': d.get('weight'),
+            }
     if verbose:
         print('\nc_mutations:')
         pprint(c_mutations)
 
     # Signature before-motifs
-    s_b_motifs = {d.get('before').lower(): 0 for m, d in s_mutations.items()}
+    s_b_motifs = {}
+    for d in s_mutations.values():
+        k = d.get('before').lower()
+        if k in s_b_motifs:
+            s_b_motifs[k]['weight'] = max(s_b_motifs[k]['weight'],
+                                          d.get('weight'))
+        else:
+            s_b_motifs[k] = {'n': 0, 'weight': d.get('weight')}
     if verbose:
         print('\ns_b_motifs:')
         pprint(s_b_motifs)
 
     # Control before-motifs
-    c_b_motifs = {d.get('before').lower(): 0 for m, d in c_mutations.items()}
+    c_b_motifs = {}
+    for d in c_mutations.values():
+        k = d.get('before').lower()
+        if k in c_b_motifs:
+            c_b_motifs[k]['weight'] = max(c_b_motifs[k]['weight'],
+                                          d.get('weight'))
+        else:
+            c_b_motifs[k] = {'n': 0, 'weight': d.get('weight')}
     if verbose:
         print('\nc_b_motifs:')
         pprint(c_b_motifs)
@@ -356,10 +390,10 @@ def count(mutation_file_path,
 
         # Count signature's changing-before motifs in the spanning sequences
         for m in s_b_motifs:
-            s_b_motifs[m] += span_seq.count(m.upper())
+            s_b_motifs[m]['n'] += span_seq.count(m.upper())
         # Count control's changing-before motifs in the spanning sequences
         for m in c_b_motifs:
-            c_b_motifs[m] += span_seq.count(m.upper())
+            c_b_motifs[m]['n'] += span_seq.count(m.upper())
 
     counts = {
         'N Entries in Mutation File': i + 1,
@@ -371,7 +405,7 @@ def count(mutation_file_path,
     pprint(counts)
     counts.update({m: d['n'] for m, d in s_mutations.items()})
     counts.update({m: d['n'] for m, d in c_mutations.items()})
-    counts.update(s_b_motifs)
-    counts.update(c_b_motifs)
+    counts.update({m: d['n'] for m, d in s_b_motifs.items()})
+    counts.update({m: d['n'] for m, d in c_b_motifs.items()})
 
     return counts
