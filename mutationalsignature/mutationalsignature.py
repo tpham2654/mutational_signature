@@ -51,7 +51,7 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
 
     span = 20
 
-    # Set up mutational signature and their weights, which are from COSMIC
+    # Set up mutational signature and their weights shown in COSMIC
     ss = {
         'tCa ==> tGa': 0.3,
         'tCa ==> tTa': 0.5,
