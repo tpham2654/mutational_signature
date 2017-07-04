@@ -59,13 +59,14 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
         'tCt ==> tTt': 0.3,
         # 'tCc ==> tGc': 0.1,
         # 'tCc ==> tTc': 0.1,
+
         # Reverse complement
         'tGa ==> tCa': 0.3,
         'tGa ==> tAa': 0.5,
         'aGa ==> aCa': 0.4,
         'aGa ==> aAa': 0.3,
-        'gGa ==> gCa': 0.1,
-        'gGa ==> gAa': 0.1,
+        # 'gGa ==> gCa': 0.1,
+        # 'gGa ==> gAa': 0.1,
     }
 
     # Identigy what to count to compute enrichment
