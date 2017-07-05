@@ -339,7 +339,7 @@ def count(mutation_file_path,
 
         # Skip if variant is not a SNP
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
-            print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
+            # print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
             continue
 
         if ref != fasta[chr_][pos].seq:
