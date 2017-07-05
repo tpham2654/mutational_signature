@@ -55,18 +55,18 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
 
     # Set up mutational signature and their weights shown in COSMIC figure
     ss = {
-        'TCA ==> TGA': 0.3,
-        'TCA ==> TTA': 0.5,
-        'TCT ==> TGT': 0.4,
-        'TCT ==> TTT': 0.3,
+        'TCA ==> TGA': 1,  #0.3,
+        'TCA ==> TTA': 1,  #0.5,
+        'TCT ==> TGT': 1,  #0.4,
+        'TCT ==> TTT': 1,  #0.3,
         # 'TCC ==> TGC': 0.1,
         # 'TCC ==> TTC': 0.1,
 
         # REVERSE COMPLEMENT
-        'TGA ==> TCA': 0.3,
-        'TGA ==> TAA': 0.5,
-        'AGA ==> ACA': 0.4,
-        'AGA ==> AAA': 0.3,
+        'TGA ==> TCA': 1,  #0.3,
+        'TGA ==> TAA': 1,  #0.5,
+        'AGA ==> ACA': 1,  #0.4,
+        'AGA ==> AAA': 1,  #0.3,
         # 'GGA ==> GCA': 0.1,
         # 'GGA ==> GAA': 0.1,
     }
@@ -339,7 +339,7 @@ def count(mutation_file_path,
 
         # Skip if variant is not a SNP
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
-            # print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
+            print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
             continue
 
         if ref != fasta[chr_][pos].seq:
