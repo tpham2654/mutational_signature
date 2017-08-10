@@ -16,13 +16,15 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
                                                verbose=False):
     """
     Compute APOBEC mutational signature enrichment.
-    :param mutation_file_path: str or iterable; of file_path(s) to mutations
-    (.VCF | .VCF.GZ | .MAF)
-    :param referece_file_path: str; file_path to referece genome (.FASTA | .FA)
-    :param upper_fasta: bool; read all .FASTA seqeunces as uppe case or not
+    :param mutation_file_path: str | iterable; Of file_path(s) to mutations
+        (.vcf file | .vcf.gz file | .maf file)
+    :param referece_file_path: str; File path to referece genome (.fasta file |
+        .fa file)
+    :param upper_fasta: bool; Whether to read all .fasta file seqeunces as
+        upper case
     :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
-    :param ids: None | iterable; count all variants if None or only variants
+    :param ids: None | iterable; Count all variants if None or only variants
         with IDs present in the iterable (thus ignores all variants with IDs if
         an empty iterable)
     :param verbose: bool
@@ -35,40 +37,35 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
 
     # Load reference genome (mutation files must use the same reference)
     if not isfile(reference_file_path):
-        raise ValueError('.FASTA {} doesn\'t exist.'.format(
-            reference_file_path))
+        raise ValueError(
+            '.fasta file {} doesn\'t exist.'.format(reference_file_path))
 
     reference_index_file_path = '{}.fai'.format(reference_file_path)
     if not isfile(reference_index_file_path):
-        raise ValueError('.FAI {} doesn\'t exist.'.format(
-            reference_index_file_path))
+        raise ValueError(
+            '.fai file {} doesn\'t exist.'.format(reference_index_file_path))
 
     fasta = pyfaidx.Fasta(
         reference_file_path, sequence_always_upper=upper_fasta)
 
     if not fasta:
-        raise ValueError('Loaded nothing from .FASTA.')
+        raise ValueError('Loaded nothing from .fasta file.')
 
-    print('Loaded .FASTA: {}.'.format(list(fasta.keys())))
+    print('Loaded .fasta file: {}.'.format(list(fasta.keys())))
 
     span = 20
 
     # Set up mutational signature and their weights shown in COSMIC figure
     ss = {
-        'TCA ==> TGA': 1,  #0.3,
-        'TCA ==> TTA': 1,  #0.5,
-        'TCT ==> TGT': 1,  #0.4,
-        'TCT ==> TTT': 1,  #0.3,
-        # 'TCC ==> TGC': 0.1,
-        # 'TCC ==> TTC': 0.1,
-
-        # REVERSE COMPLEMENT
-        'TGA ==> TCA': 1,  #0.3,
-        'TGA ==> TAA': 1,  #0.5,
-        'AGA ==> ACA': 1,  #0.4,
-        'AGA ==> AAA': 1,  #0.3,
-        # 'GGA ==> GCA': 0.1,
-        # 'GGA ==> GAA': 0.1,
+        'TCA ==> TGA': 1,
+        'TCA ==> TTA': 1,
+        'TCT ==> TGT': 1,
+        'TCT ==> TTT': 1,
+        # Reverse complement
+        'TGA ==> TCA': 1,
+        'TGA ==> TAA': 1,
+        'AGA ==> ACA': 1,
+        'AGA ==> AAA': 1,
     }
 
     # Identigy what to count to compute enrichment
@@ -135,11 +132,11 @@ def get_apobec_mutational_signature_enrichment(mutation_file_path,
 def _identify_what_to_count(signature_mutations):
     """
     Identigy what mutations and/or motifs to count to compute mutational
-    signature enrichment:
-        signature_mutation_enrichment = [(n_signature_motif_mutations) /
-        (n_changing_signature_motif_mutations)] /
-        [(n_signature_motifs_in_context) /
-        (n_changing_signature_motifs_in_context)]
+        signature enrichment:
+            signature_mutation_enrichment = [(n_signature_motif_mutations) /
+            (n_changing_signature_motif_mutations)] /
+            [(n_signature_motifs_in_context) /
+            (n_changing_signature_motifs_in_context)]
     :param signature_mutations: dict; {signature_mutation: weight, ...}
     :return: dict & dict & dict & dict
     """
@@ -245,8 +242,8 @@ def count(mutation_file_path,
           verbose=False):
     """
     Count.
-    :param mutation_file_path: str; file_path to mutations (.VCF | .VCF.GZ |
-    .MAF)
+    :param mutation_file_path: str; File path to mutations (.vcf file | .vcf.gz
+        file | .maf file)
     :param fasta: pyfaidx handle
     :param span: int
     :signature_mutations: dict
@@ -255,7 +252,7 @@ def count(mutation_file_path,
     :control_b_motifs: dict
     :param chromosome_format: str; 'ID' | 'chrID'
     :param regions: dict
-    :param ids: None | iterable; count all variants if None or only variants
+    :param ids: None | iterable; Count all variants if None or only variants
         with IDs present in the iterable (thus ignores all variants with IDs if
         an empty iterable)
     :param verbose: bool
@@ -301,8 +298,8 @@ def count(mutation_file_path,
             if chr_.startswith('chr'):
                 chr_ = chr_.replace('chr', '').replace('M', 'MT')
         else:
-            raise ValueError('Unknown chromosome_format {}.'.format(
-                chromosome_format))
+            raise ValueError(
+                'Unknown chromosome_format {}.'.format(chromosome_format))
 
         # TODO: Rationalize
         # Shift position
@@ -334,12 +331,13 @@ def count(mutation_file_path,
 
         # Skip if there is no reference information
         if chr_ not in fasta.keys():
-            print('\tChromosome {} not in .FASTA.'.format(chr_))
+            print('\tChromosome {} not in .fasta file.'.format(chr_))
             continue
 
         # Skip if variant is not a SNP
         if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
-            print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
+            if verbose:
+                print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
             continue
 
         if ref != fasta[chr_][pos].seq:
@@ -368,8 +366,8 @@ def count(mutation_file_path,
             # Check if the surrounding sequences are the same
             if c_b_m == ref:
                 if c_a_m == alt:
-                    if b_m == fasta[chr_][pos - c_s_i:pos + len(b_m) -
-                                          c_e_i].seq:
+                    if b_m == fasta[chr_][pos - c_s_i:
+                                          pos + len(b_m) - c_e_i].seq:
                         d['n'] += 1
 
         # Check if this mutation matches any control mutation

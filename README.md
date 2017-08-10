@@ -17,7 +17,7 @@ Library for computing enrichment of mutational signature & cluster :alien:
 
 # Comparison with Firehose's P-MACD
 
-[comparison results](https://github.com/kwatme/mutational-signature/blob/master/media/compare_apobec_mutational_signature_enrichment_and_p-macd_in_tcga.pdf)
+[comparison results](https://github.com/kwatme/mutational-signature/blob/master/media/Compare TCGA AMSE and P-MACD.pdf)
 
 # References
 
