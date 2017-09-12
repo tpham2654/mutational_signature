@@ -1,4 +1,4 @@
-# Mutational Signature Library
+# Mutational Signature
 
 Library for computing enrichment of mutational signature & cluster :alien:
 

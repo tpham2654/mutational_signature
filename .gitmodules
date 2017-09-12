@@ -1,6 +1,0 @@
-[submodule "mutationalsignature/file"]
-	path = mutationalsignature/file
-	url = https://github.com/KwatME/file
-[submodule "mutationalsignature/plot"]
-	path = mutationalsignature/plot
-	url = https://github.com/KwatME/plot
