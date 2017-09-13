@@ -2,24 +2,24 @@
 
 Library for computing enrichment of mutational signature & cluster :alien:
 
-# Usage
+## Usage
 
 (Awesome & easy-to-follow documentation is coming - very soon)
 
-## Input
+### Input
 
 - Mutations: VCF or MAF
 - Reference genome: FASTA or FA
 
-## Output
+### Output
 
 - Ranking & distribution of the enrichment): PDF
 
-# Comparison with Firehose's P-MACD
+## Comparison with Firehose's P-MACD
 
 [Comparison results](https://github.com/kwatme/mutational-signature/blob/master/media/Compare_TCGA_AMSE_and_P-MACD.pdf)
 
-# References
+## References
 
 Algorithm was implemented based on:
 
