@@ -1,6 +1,6 @@
 # Mutational Signature
 
-Library for computing enrichment of mutational signature & cluster :alien:
+Library for working with mutational signatures :alien:
 
 ## Usage
 
