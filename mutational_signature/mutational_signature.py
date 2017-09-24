@@ -80,7 +80,7 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
     samples = {}
     for i, fp in enumerate(mutation_file_path):
 
-        # TODO: Generalize
+        # TODO: generalize
         # Get sample ID
         id_ = fp.split('/')[-1].split('.')[0]
         if id_ in samples:
