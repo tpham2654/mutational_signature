@@ -6,29 +6,33 @@ from pprint import pprint
 import pyfaidx
 from pandas import DataFrame, isnull, read_table
 
+# TODO: refactor
 
-def get_apobec_mutational_signature_enrichment(mutation_file_path,
-                                               reference_file_path,
-                                               upper_fasta=True,
-                                               chromosome_format='ID',
-                                               regions={},
-                                               ids=None,
-                                               verbose=False):
+
+def compute_apobec_mutational_signature_enrichment(mutation_file_path,
+                                                   reference_file_path,
+                                                   upper_fasta=True,
+                                                   chromosome_format='ID',
+                                                   regions={},
+                                                   ids=None,
+                                                   verbose=False):
     """
     Compute APOBEC mutational signature enrichment.
-    :param mutation_file_path: str | iterable; Of file_path(s) to mutations
-        (.vcf file | .vcf.gz file | .maf file)
-    :param referece_file_path: str; File path to referece genome (.fasta file |
-        .fa file)
-    :param upper_fasta: bool; Whether to read all .fasta file seqeunces as
-        upper case
-    :param chromosome_format: str; 'ID' | 'chrID'
-    :param regions: dict
-    :param ids: None | iterable; Count all variants if None or only variants
-        with IDs present in the iterable (thus ignores all variants with IDs if
-        an empty iterable)
-    :param verbose: bool
-    :return: DataFrame; (n_mutations + n_motifs counted, n_mutation_files)
+    Arguments:
+        mutation_file_path (str | iterable): file_path(s) to mutation files
+            (.vcf file | .vcf.gz file | .maf file)
+        referece_file_path (str): file path to referece genome (.fasta file |
+            .fa file)
+        upper_fasta (bool): whether to read all .fasta file seqeunces as
+            upper case
+        chromosome_format (str): 'ID' | 'chrID'
+        regions (dict):
+        ids (None | iterable): count all variants if None or only variants
+            with IDs present in the iterable (thus ignores all variants with IDs
+            if an empty iterable)
+        verbose (bool)
+    Returns:
+        DataFrame: (n_mutations + n_motifs counted, n_mutation_files)
     """
 
     # If only 1 file_path is passed, put it in a list
@@ -137,8 +141,13 @@ def _identify_what_to_count(signature_mutations):
             (n_changing_signature_motif_mutations)] /
             [(n_signature_motifs_in_context) /
             (n_changing_signature_motifs_in_context)]
-    :param signature_mutations: dict; {signature_mutation: weight, ...}
-    :return: dict & dict & dict & dict
+    Arguments:
+        signature_mutations (dict): {signature_mutation: weight, ...}
+    Returns:
+        dict:
+        dict:
+        dict:
+        dict:
     """
 
     # Signature mutations
@@ -242,21 +251,23 @@ def count(mutation_file_path,
           verbose=False):
     """
     Count.
-    :param mutation_file_path: str; File path to mutations (.vcf file | .vcf.gz
-        file | .maf file)
-    :param fasta: pyfaidx handle
-    :param span: int
-    :signature_mutations: dict
-    :control_mutations: dict
-    :signature_b_motifs: dict
-    :control_b_motifs: dict
-    :param chromosome_format: str; 'ID' | 'chrID'
-    :param regions: dict
-    :param ids: None | iterable; Count all variants if None or only variants
-        with IDs present in the iterable (thus ignores all variants with IDs if
-        an empty iterable)
-    :param verbose: bool
-    :return: dict
+    Arguments:
+        mutation_file_path (str | iterable): file_path(s) to mutation files
+            (.vcf file | .vcf.gz file | .maf file)
+        fasta (pyfaidx handle):
+        span (int):
+        signature_mutations (dict):
+        control_mutations (dict):
+        signature_b_motifs (dict):
+        control_b_motifs (dict):
+        chromosome_format (str): 'ID' | 'chrID'
+        regions (dict):
+        ids (None | iterable): count all variants if None or only variants
+            with IDs present in the iterable (thus ignores all variants with IDs if
+            an empty iterable)
+        verbose (bool):
+    Returns:
+        dict:
     """
 
     # Load mutation file
@@ -288,7 +299,7 @@ def count(mutation_file_path,
 
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
 
-        # TODO: Remove
+        # TODO: remove
         # Name chromosome
         chr_ = str(chr_)
         if chromosome_format == 'chrID':
@@ -301,7 +312,6 @@ def count(mutation_file_path,
             raise ValueError(
                 'Unknown chromosome_format {}.'.format(chromosome_format))
 
-        # TODO: Rationalize
         # Shift position
         pos = int(pos) - 1
 
