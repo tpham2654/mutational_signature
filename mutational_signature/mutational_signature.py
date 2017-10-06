@@ -88,7 +88,7 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
         print('({}/{}) {} ...'.format(i + 1, len(mutation_file_path), id_))
 
         # Count
-        samples[id_] = count_motifs(
+        samples[id_] = _count(
             fp,
             fasta,
             span,
@@ -238,17 +238,17 @@ def _identify_what_to_count(signature_mutations):
     return s_mutations, c_mutations, s_b_motifs, c_b_motifs
 
 
-def count_motifs(mutation_file_path,
-                 fasta,
-                 span,
-                 signature_mutations,
-                 control_mutations,
-                 signature_b_motifs,
-                 control_b_motifs,
-                 chromosome_format='ID',
-                 regions={},
-                 ids=None,
-                 verbose=False):
+def _count(mutation_file_path,
+           fasta,
+           span,
+           signature_mutations,
+           control_mutations,
+           signature_b_motifs,
+           control_b_motifs,
+           chromosome_format='ID',
+           regions={},
+           ids=None,
+           verbose=False):
     """
     Count motifs.
     Arguments:
