@@ -17,7 +17,7 @@ Library for working with mutational signatures :alien:
 
 ## Comparison with Firehose's P-MACD
 
-[Comparison results](https://github.com/kwatme/mutational-signature/blob/master/media/Compare_TCGA_AMSE_and_P-MACD.pdf)
+[Comparison results](https://github.com/KwatME/mutational-signature/blob/master/media/Compare_TCGA_AMSE_and_P-MACD.pdf)
 
 ## References
 
