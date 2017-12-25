@@ -310,7 +310,7 @@ def _count(mutation_file_path,
                 chr_ = chr_.replace('chr', '').replace('M', 'MT')
         else:
             raise ValueError(
-                'Unknown chromosome_format {}.'.format(chromosome_format))
+                'Unknown chromosome_format: {}.'.format(chromosome_format))
 
         # Shift position
         pos = int(pos) - 1
