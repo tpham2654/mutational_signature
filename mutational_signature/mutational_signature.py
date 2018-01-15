@@ -285,7 +285,8 @@ def _count(mutation_file_path,
             encoding='ISO-8859-1').iloc[:, [4, 5, 13, 10, 12]]
 
     else:
-        raise ValueError('Unknown mutation_file_path: {}.'.format(mutation_file_path))
+        raise ValueError(
+            'Unknown mutation_file_path: {}.'.format(mutation_file_path))
 
     # Get ready to count mutations &/| motifs
     s_mutations = copy.deepcopy(signature_mutations)
