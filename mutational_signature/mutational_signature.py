@@ -6,14 +6,12 @@ from pprint import pprint
 import pyfaidx
 from pandas import DataFrame, isnull, read_table
 
-# TODO: refactor
-
 
 def compute_apobec_mutational_signature_enrichment(mutation_file_path,
                                                    reference_file_path,
                                                    upper_fasta=True,
                                                    chromosome_format='ID',
-                                                   regions={},
+                                                   regions=None,
                                                    ids=None,
                                                    verbose=False):
     """
@@ -21,7 +19,7 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
     Arguments:
         mutation_file_path (str | iterable): file_path(s) to mutation files
             (.vcf file | .vcf.gz file | .maf file)
-        referece_file_path (str): file path to referece genome (.fasta file |
+        reference_file_path (str): file path to referece genome (.fasta file |
             .fa file)
         upper_fasta (bool): whether to read all .fasta file seqeunces as
             upper case
@@ -34,6 +32,9 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
     Returns:
         DataFrame: (n_mutations + n_motifs counted, n_mutation_files)
     """
+
+    if regions is None:
+        regions = {}
 
     # If only 1 file_path is passed, put it in a list
     if isinstance(mutation_file_path, str):
@@ -80,7 +81,6 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
     samples = {}
     for i, fp in enumerate(mutation_file_path):
 
-        # TODO: generalize
         # Get sample ID
         id_ = fp.split('/')[-1].split('.')[0]
         if id_ in samples:
@@ -246,7 +246,7 @@ def _count(mutation_file_path,
            signature_b_motifs,
            control_b_motifs,
            chromosome_format='ID',
-           regions={},
+           regions=None,
            ids=None,
            verbose=False):
     """
@@ -270,6 +270,9 @@ def _count(mutation_file_path,
         dict:
     """
 
+    if regions is None:
+        regions = {}
+
     # Load mutation file
     if mutation_file_path.endswith(('.vcf', '.vcf.gz')):
         df = read_table(
@@ -280,6 +283,9 @@ def _count(mutation_file_path,
         df = read_table(
             mutation_file_path, comment='#',
             encoding='ISO-8859-1').iloc[:, [4, 5, 13, 10, 12]]
+
+    else:
+        raise ValueError('Unknown mutation_file_path: {}.'.format(mutation_file_path))
 
     # Get ready to count mutations &/| motifs
     s_mutations = copy.deepcopy(signature_mutations)
@@ -299,7 +305,6 @@ def _count(mutation_file_path,
 
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
 
-        # TODO: remove
         # Name chromosome
         chr_ = str(chr_)
         if chromosome_format == 'chrID':
