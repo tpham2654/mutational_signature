@@ -30,7 +30,7 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
             if an empty iterable)
         verbose (bool)
     Returns:
-        DataFrame: (n_mutations + n_motifs counted, n_mutation_files)
+        DataFrame: (n_mutation + n_motifs counted, n_mutation_file, )
     """
 
     if regions is None:
@@ -295,9 +295,9 @@ def _count(mutation_file_path,
     c_b_motifs = copy.deepcopy(control_b_motifs)
 
     # Initialize counts
-    n_mutations_in_region = 0
+    n_mutation_in_region = 0
     n_kept_mutations_in_region = 0
-    n_mutations_analyzed = 0
+    n_mutation_analyzed = 0
     n_spanning_bases = 0
 
     # Use dict for faster ID look up
@@ -331,7 +331,7 @@ def _count(mutation_file_path,
                     print('\t{}:{} not in regions.'.format(chr_, pos))
                 continue
 
-        n_mutations_in_region += 1
+        n_mutation_in_region += 1
 
         # Filter variant with IDs
         if ids is not None and not isnull(id_) and id_.startswith('rs'):
@@ -362,7 +362,7 @@ def _count(mutation_file_path,
             continue
 
         # Analyze
-        n_mutations_analyzed += 1
+        n_mutation_analyzed += 1
 
         # Check if this mutation matches any signature mutation
         for m, d in s_mutations.items():
@@ -411,10 +411,10 @@ def _count(mutation_file_path,
             c_b_motifs[m]['n'] += span_seq.count(m)
 
     counts = {
-        'N Entries in Mutation File': i + 1,
-        'N Mutations in Region': n_mutations_in_region,
-        'N Kept Mutations in Region': n_kept_mutations_in_region,
-        'N Mutations Analyzed': n_mutations_analyzed,
+        'N Entry in Mutation File': i + 1,
+        'N Mutation in Region': n_mutation_in_region,
+        'N Kept Mutation in Region': n_kept_mutations_in_region,
+        'N Mutation Analyzed': n_mutation_analyzed,
         'N Spanning Bases': n_spanning_bases,
     }
     pprint(counts)
