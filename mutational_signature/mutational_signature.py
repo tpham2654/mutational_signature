@@ -1,5 +1,6 @@
 import copy
 import re
+import loadmutsigs
 from os.path import isfile
 from pprint import pprint
 
@@ -9,6 +10,7 @@ from pandas import DataFrame, isnull, read_table
 
 def compute_apobec_mutational_signature_enrichment(mutation_file_path,
                                                    reference_file_path,
+												   signature_number=2,
                                                    upper_fasta=True,
                                                    chromosome_format='ID',
                                                    regions=None,
@@ -21,6 +23,7 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
             (.vcf file | .vcf.gz file | .maf file)
         reference_file_path (str): file path to referece genome (.fasta file |
             .fa file)
+		signature_number (int): Mutation signature from http://cancer.sanger.ac.uk/cosmic/signatures
         upper_fasta (bool): whether to read all .fasta file seqeunces as
             upper case
         chromosome_format (str): 'ID' | 'chrID'
@@ -61,19 +64,9 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
     span = 20
 
     # Set up mutational signature and their weights shown in COSMIC figure
-    ss = {
-        'TCA ==> TGA': 1,
-        'TCA ==> TTA': 1,
-        'TCT ==> TGT': 1,
-        'TCT ==> TTT': 1,
-        # Reverse complement
-        'TGA ==> TCA': 1,
-        'TGA ==> TAA': 1,
-        'AGA ==> ACA': 1,
-        'AGA ==> AAA': 1,
-    }
+    ss = loadmutsigs.makesigdict(signature_number)
 
-    # Identigy what to count to compute enrichment
+    # Identify what to count to compute enrichment
     signature_mutations, control_mutations, signature_b_motifs, control_b_motifs = _identify_what_to_count(
         ss)
 
