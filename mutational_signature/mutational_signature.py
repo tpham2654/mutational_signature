@@ -118,10 +118,10 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
     n_control_b_mutations = df.ix[control_b_motifs.keys()].apply(
         lambda s: s * control_b_motifs[s.name]['weight'], axis=1).sum()
 
-    amse = (n_signature_mutations / n_control_mutations) / (
+    mse = (n_signature_mutations / n_control_mutations) / (
         n_signature_b_mutations / n_control_b_mutations)
-
-    df.ix['APOBEC Mutational Signature Enrichment'] = amse.fillna(0)
+    df.ix['Mutation Signature'] = signature_number
+    df.ix['Mutational Signature Enrichment'] = mse.fillna(0)
 
     return df.sort_index()
 
@@ -341,6 +341,7 @@ def _count(mutation_file_path,
         # Skip if there is no reference information
         if chr_ not in fasta.keys():
             print('\tChromosome {} not in .fasta file.'.format(chr_))
+            #pprint(fasta.keys())
             continue
 
         # Skip if variant is not a SNP
@@ -350,7 +351,7 @@ def _count(mutation_file_path,
             continue
 
         if ref != fasta[chr_][pos].seq:
-            print('\tRefereces mismatch: {}:{} {} != ({}){}({}).'.format(
+            print('\tReferences mismatch: {}:{} {} != ({}){}({}).'.format(
                 chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
 
