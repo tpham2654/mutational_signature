@@ -8,9 +8,9 @@ import pyfaidx
 from pandas import DataFrame, isnull, read_table
 
 
-def compute_apobec_mutational_signature_enrichment(mutation_file_path,
+def compute_mutational_signature_enrichment(mutation_file_path,
                                                    reference_file_path,
-												   signature_number=2,
+                                                   signature_number=2,
                                                    upper_fasta=True,
                                                    chromosome_format='ID',
                                                    regions=None,
@@ -23,7 +23,7 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
             (.vcf file | .vcf.gz file | .maf file)
         reference_file_path (str): file path to referece genome (.fasta file |
             .fa file)
-		signature_number (int): Mutation signature from http://cancer.sanger.ac.uk/cosmic/signatures
+        signature_number (int): Mutation signature from http://cancer.sanger.ac.uk/cosmic/signatures
         upper_fasta (bool): whether to read all .fasta file seqeunces as
             upper case
         chromosome_format (str): 'ID' | 'chrID'
@@ -65,7 +65,7 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
 
     # Set up mutational signature and their weights shown in COSMIC figure
     
-    if signature_number<0:
+    if signature_number==-1:
         ss = {
         'TCA ==> TGA': 1,
         'TCA ==> TTA': 1,
@@ -312,7 +312,7 @@ def _count(mutation_file_path,
         ids = {id_: None for id_ in ids}
 
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
-
+        #print "inside for loop"
         # Name chromosome
         chr_ = str(chr_)
         if chromosome_format == 'chrID':
@@ -359,13 +359,17 @@ def _count(mutation_file_path,
             continue
 
         # Skip if variant is not a SNP
-        if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
-            if verbose:
-                print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
-            continue
+        print ref
+        print alt
+        if isinstance(ref, basestring) and isinstance(alt, basestring):
+            #has problems with  MAF made with R maftools.icgcSimpleMutationToMAF for samples like PBCA-DE_DO35598._nodup.tsv.maf because ref or alt is boolean (True), not string.
+            if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
+                if verbose:
+                    print('\tSkip non-SNP variant {} ==> {}.'.format(ref, alt))
+                continue
 
         if ref != fasta[chr_][pos].seq:
-			#TCGA-04-1337-01 has problems with this line when you use 1000genomes FASTA
+            #TCGA-04-1337-01 has problems with this line when you use 1000genomes FASTA
             print('\tReferences mismatch: {}:{} {} != ({}){}({}).'.format(
                 chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
@@ -403,7 +407,19 @@ def _count(mutation_file_path,
                 d['n'] += 1
 
         # Get mutation-spanning sequences and strip 'N's
-        span_seq = fasta[chr_][pos - span:pos + span + 1].seq.strip('N')
+        
+        
+        start_pos = pos - span
+        end_pos = pos + span + 1
+        if pos < span:
+            start_pos = 0
+            end_pos = 21
+        #print str(chr_) + " " + str(pos) + " [" + str(start_pos) + " - " + str(end_pos) + "]"
+        
+        span_seq = fasta[chr_][start_pos:end_pos].seq
+        #print span_seq
+        if "N" in span_seq:
+            span_seq = span_seq.strip('N')
 
         if re.findall('[^AaCcGgTt]', span_seq):
             print('\t{} (centered on {}:{}) contains unknown nucleotide.'.

@@ -1,36 +1,43 @@
 import pandas as pd
-from Bio.Seq import Seq
-from Bio.Alphabet import generic_dna
 
-def reversecomplement(dnaseqin):
-	dnain = Seq(dnaseqin,generic_dna)
-	return str(dnain.reverse_complement())
+
+def reversecomplement(dna_seq_in):
+	dna_complement = ""
+	complement_pair = {"A":"T",
+	"G":"C",
+	"T":"A",
+	"C":"G"}
+	for nt in dna_seq_in:
+		dna_complement = dna_complement + complement_pair[nt]
+	return str(dna_complement[::-1]) #reversed
 
 def makedictkey(change,sthreebefore):
-	arrchange = change.split(">")
-	nucbefore = arrchange[0]
-	nucafter = arrchange[1]
-	threebefore = [s for s in sthreebefore]
-	threeafter = [s for s in threebefore]
-	if threebefore[1] == nucbefore:
-		threeafter[1] = nucafter
-		return str("".join(threebefore)) + " ==> " + str("".join(threeafter))
+	#changes COSMIC formatted mutation description to dictionary key format this program uses.
+	arr_nucleotidechange = change.split(">")
+	nucleotide_before = arr_nucleotidechange[0]
+	nucleotide_after = arr_nucleotidechange[1]
+	arr_three_nt_before = [s for s in sthreebefore]
+	arr_three_nt_after = [s for s in arr_three_nt_before]
+	if arr_three_nt_before[1] == nucleotide_before:
+		arr_three_nt_after[1] = nucleotide_after
+		return str("".join(arr_three_nt_before)) + " ==> " + str("".join(arr_three_nt_after))
 	return False
 
 def makereversecomplementdictkey(dictkeyin):
-	arrdictkey = dictkeyin.split(" ==> ")
-	threebefore = reversecomplement(arrdictkey[0].strip())
-	threeafter = reversecomplement(arrdictkey[1].strip())
-	return threebefore + " ==> " + threeafter
+	arr_dictkey = dictkeyin.split(" ==> ")
+	three_nt_before = reversecomplement(arr_dictkey[0].strip())
+	three_nt_after = reversecomplement(arr_dictkey[1].strip())
+	return three_nt_before + " ==> " + three_nt_after
 	
 
 def makesigdict(signum):
-	mutdf = pd.read_table('signatures_probabilities.txt')
-	dictout = {}
-	for i,r in mutdf.iterrows():
-		dictkey = makedictkey(r["Substitution Type"],r["Trinucleotide"])
-		revcomplementdictkey = makereversecomplementdictkey(dictkey)
-		if dictkey != False:
-			dictout[dictkey] = r["Signature " + str(signum)]
-			dictout[revcomplementdictkey] = r["Signature " + str(signum)]
-	return dictout
+	mutation_sigs_df = pd.read_table('signatures_probabilities.txt') #file comes from COSMIC.
+	mutsig_dictout = {}
+	for i,r in mutation_sigs_df.iterrows():
+		mutsig_dictkey = makedictkey(r["Substitution Type"],r["Trinucleotide"])
+		revcomplement_dictkey = makereversecomplementdictkey(mutsig_dictkey)
+		if mutsig_dictkey != False:
+			mutsig_dictout[mutsig_dictkey] = r["Signature " + str(signum)]
+			#reverse complement of described mutation is treated the same as original.
+			mutsig_dictout[revcomplement_dictkey] = r["Signature " + str(signum)] 
+	return mutsig_dictout
