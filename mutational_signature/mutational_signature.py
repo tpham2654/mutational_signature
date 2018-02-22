@@ -64,7 +64,21 @@ def compute_apobec_mutational_signature_enrichment(mutation_file_path,
     span = 20
 
     # Set up mutational signature and their weights shown in COSMIC figure
-    ss = loadmutsigs.makesigdict(signature_number)
+    
+    if signature_number<0:
+        ss = {
+        'TCA ==> TGA': 1,
+        'TCA ==> TTA': 1,
+        'TCT ==> TGT': 1,
+        'TCT ==> TTT': 1,
+        # Reverse complement
+        'TGA ==> TCA': 1,
+        'TGA ==> TAA': 1,
+        'AGA ==> ACA': 1,
+        'AGA ==> AAA': 1,
+        }
+    else:
+        ss = loadmutsigs.makesigdict(signature_number)
 
     # Identify what to count to compute enrichment
     signature_mutations, control_mutations, signature_b_motifs, control_b_motifs = _identify_what_to_count(
@@ -272,7 +286,7 @@ def _count(mutation_file_path,
             mutation_file_path, comment='#',
             encoding='ISO-8859-1').iloc[:, [0, 1, 2, 3, 4]]
 
-    elif mutation_file_path.endswith('.maf'):
+    elif mutation_file_path.endswith(('.maf','.maf.txt')):
         df = read_table(
             mutation_file_path, comment='#',
             encoding='ISO-8859-1').iloc[:, [4, 5, 13, 10, 12]]
@@ -351,6 +365,7 @@ def _count(mutation_file_path,
             continue
 
         if ref != fasta[chr_][pos].seq:
+			#TCGA-04-1337-01 has problems with this line when you use 1000genomes FASTA
             print('\tReferences mismatch: {}:{} {} != ({}){}({}).'.format(
                 chr_, pos, ref, *fasta[chr_][pos - 1:pos + 2].seq))
             continue
