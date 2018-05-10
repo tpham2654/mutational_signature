@@ -30,7 +30,7 @@ def makereversecomplementdictkey(dictkeyin):
 	return three_nt_before + " ==> " + three_nt_after
 	
 
-def makesigdict(signum):
+def makesigdict(signum,doreversecomplement=True):
 	mutation_sigs_df = pd.read_table('signatures_probabilities.txt') #file comes from COSMIC.
 	mutsig_dictout = {}
 	for i,r in mutation_sigs_df.iterrows():
@@ -39,5 +39,27 @@ def makesigdict(signum):
 		if mutsig_dictkey != False:
 			mutsig_dictout[mutsig_dictkey] = r["Signature " + str(signum)]
 			#reverse complement of described mutation is treated the same as original.
-			mutsig_dictout[revcomplement_dictkey] = r["Signature " + str(signum)] 
+			if doreversecomplement==True:
+				mutsig_dictout[revcomplement_dictkey] = r["Signature " + str(signum)] 
 	return mutsig_dictout
+	
+def subtract_sigs(sig_to_subtract_from_num,sig_to_subtract_with_num):
+	sig_out = dict()
+	sig_to_subtract_from = makesigdict(sig_to_subtract_from_num)
+	sig_to_subtract_with = makesigdict(sig_to_subtract_with_num)
+	sig1_in_2 = [k for k in sig_to_subtract_from if k in sig_to_subtract_with]
+	sig2_in_1 = [k for k in sig_to_subtract_with if k in sig_to_subtract_from]
+	common_sigs = list(set([k for k in sig1_in_2+sig2_in_1]))
+	only_in_sig_to_subtract_from = [k for k in sig_to_subtract_from if k not in sig_to_subtract_with]
+	only_in_sig_to_subtract_with = [k for k in sig_to_subtract_with if k not in sig_to_subtract_from]
+	for key in common_sigs:
+		subtracted_probability = sig_to_subtract_from[key] - sig_to_subtract_with[key]
+		if(float(subtracted_probability)>float(0)):
+			sig_out[key] = subtracted_probability
+		else:
+			sig_out[key] = 0
+	for key in only_in_sig_to_subtract_from:
+		sig_out[key] = only_in_sig_to_subtract_from[key]
+	for key in only_in_sig_to_subtract_with:
+		sig_out[key] = only_in_sig_to_subtract_with[key]
+	return sig_out

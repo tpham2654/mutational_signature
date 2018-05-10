@@ -1,12 +1,17 @@
 import copy
 import re
 import loadmutsigs
+import os
+import sys
 from os.path import isfile
 from pprint import pprint
 
 import pyfaidx
 from pandas import DataFrame, isnull, read_table
-
+if sys.version_info[0] < 3: 
+    from StringIO import StringIO
+else:
+    from io import StringIO
 
 def compute_mutational_signature_enrichment(mutation_file_path,
                                                    reference_file_path,
@@ -23,7 +28,7 @@ def compute_mutational_signature_enrichment(mutation_file_path,
             (.vcf file | .vcf.gz file | .maf file)
         reference_file_path (str): file path to referece genome (.fasta file |
             .fa file)
-        signature_number (int): Mutation signature from http://cancer.sanger.ac.uk/cosmic/signatures
+        signature_number (int or list [signumber int,doreversecomplement bool]): Mutation signature from http://cancer.sanger.ac.uk/cosmic/signatures
         upper_fasta (bool): whether to read all .fasta file seqeunces as
             upper case
         chromosome_format (str): 'ID' | 'chrID'
@@ -78,8 +83,11 @@ def compute_mutational_signature_enrichment(mutation_file_path,
         'AGA ==> AAA': 1,
         }
     else:
-        ss = loadmutsigs.makesigdict(signature_number)
-
+	    if type(signature_number) is list:
+	    	ss = loadmutsigs.makesigdict(signature_number[0],signature_number[1])
+	    else:
+	        ss = loadmutsigs.makesigdict(signature_number)
+    
     # Identify what to count to compute enrichment
     signature_mutations, control_mutations, signature_b_motifs, control_b_motifs = _identify_what_to_count(
         ss)
@@ -134,11 +142,13 @@ def compute_mutational_signature_enrichment(mutation_file_path,
 
     mse = (n_signature_mutations / n_control_mutations) / (
         n_signature_b_mutations / n_control_b_mutations)
-    df.ix['Mutation Signature'] = signature_number
+    if type(signature_number) is list:
+        df.ix['Mutation Signature'] = signature_number[0]
+    else:
+        df.ix['Mutation Signature'] = signature_number
     df.ix['Mutational Signature Enrichment'] = mse.fillna(0)
 
     return df.sort_index()
-
 
 def _identify_what_to_count(signature_mutations):
     """
@@ -244,6 +254,28 @@ def _identify_what_to_count(signature_mutations):
 
     return s_mutations, c_mutations, s_b_motifs, c_b_motifs
 
+	
+def _detect_maf_cols(mutation_file_path):
+    expected_columns = ["Chromosome",
+    "Start_Position",
+    "dbSNP_RS",
+    "Reference_Allele",
+    "Tumor_Seq_Allele2"]
+    df = read_table(
+            mutation_file_path, comment='#',
+            encoding='ISO-8859-1')
+    df_cols = list(df.columns.values)
+    df_unique_cols = set(df_cols)
+    df_cols_in_expected = [c for c in df_unique_cols if c.lower() in [e_c.lower() for e_c in expected_columns]]
+    df_cols_in_expected_lower = [c.lower() for c in df_cols_in_expected]
+    if len(df_cols_in_expected)==len(expected_columns):
+        expected_columns_lower = [c.lower() for c in expected_columns]
+        df_cols_ordered = []
+        for i in range(0, len(expected_columns_lower)):
+            df_cols_ordered.append(df_cols_in_expected[df_cols_in_expected_lower.index(expected_columns_lower[i])])
+        return df[df_cols_ordered]
+    else:
+        raise ValueError('Unknown formatted MAF: {}.'.format(mutation_file_path))
 
 def _count(mutation_file_path,
            fasta,
@@ -282,15 +314,16 @@ def _count(mutation_file_path,
 
     # Load mutation file
     if mutation_file_path.endswith(('.vcf', '.vcf.gz')):
-        df = read_table(
-            mutation_file_path, comment='#',
+        vcf_lines = []
+        with open(mutation_file_path, 'r') as f:
+            vcf_lines = [l for l in f if not l.startswith('##')]
+        df = read_table(StringIO(os.linesep.join(vcf_lines)), 
             encoding='ISO-8859-1').iloc[:, [0, 1, 2, 3, 4]]
-
     elif mutation_file_path.endswith(('.maf','.maf.txt')):
-        df = read_table(
+        '''df = read_table(
             mutation_file_path, comment='#',
-            encoding='ISO-8859-1').iloc[:, [4, 5, 13, 10, 12]]
-
+            encoding='ISO-8859-1').iloc[:, [4, 5, 13, 10, 12]]'''
+        df = _detect_maf_cols(mutation_file_path)
     else:
         raise ValueError(
             'Unknown mutation_file_path: {}.'.format(mutation_file_path))
@@ -310,7 +343,7 @@ def _count(mutation_file_path,
     # Use dict for faster ID look up
     if ids is not None:
         ids = {id_: None for id_ in ids}
-
+	print df.empty
     for i, (chr_, pos, id_, ref, alt) in df.iterrows():
         #print "inside for loop"
         # Name chromosome
@@ -359,8 +392,8 @@ def _count(mutation_file_path,
             continue
 
         # Skip if variant is not a SNP
-        print ref
-        print alt
+        #print ref
+        #print alt
         if isinstance(ref, basestring) and isinstance(alt, basestring):
             #has problems with  MAF made with R maftools.icgcSimpleMutationToMAF for samples like PBCA-DE_DO35598._nodup.tsv.maf because ref or alt is boolean (True), not string.
             if not (1 == len(ref) == len(alt)) or ref == '-' or alt == '-':
@@ -434,7 +467,17 @@ def _count(mutation_file_path,
         # Count control's changing-before motifs in the spanning sequences
         for m in c_b_motifs:
             c_b_motifs[m]['n'] += span_seq.count(m)
-
+	counts = {
+        'N Entry in Mutation File': 1,
+        'N Mutation in Region': n_mutation_in_region,
+        'N Kept Mutation in Region': n_kept_mutations_in_region,
+        'N Mutation Analyzed': n_mutation_analyzed,
+        'N Spanning Bases': n_spanning_bases,
+        }
+    try:
+        i
+    except NameError:     
+        i = 0
     counts = {
         'N Entry in Mutation File': i + 1,
         'N Mutation in Region': n_mutation_in_region,
